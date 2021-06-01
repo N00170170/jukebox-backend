@@ -31,6 +31,22 @@ function userJoin(id, username, room) {
     return user;
 }
 
+// Create new room - called when host creates a room
+function createRoom(id, username){
+    return userJoin(id, username, makeid(4));
+}
+
+function makeid(length) {
+    var result           = [];
+    var characters       = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+      result.push(characters.charAt(Math.floor(Math.random() * 
+ charactersLength)));
+   }
+   return result.join('');
+}
+
 //Get current user
 function getCurrentUser(id){
     return users.find(user => user.id === id);
@@ -123,6 +139,7 @@ function nextTrack(user){
 
 module.exports = {
     userJoin,
+    createRoom,
     getCurrentUser,
     userLeave,
     getRoomInfo,

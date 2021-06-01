@@ -2,7 +2,9 @@ const express = require('express');
 const http = require('http');
 const socketio = require('socket.io');
 const formatMessage = require('./utils/messages');
-const { userJoin, getCurrentUser, userLeave, getRoomInfo, getRooms, addToQueue, nextTrack } = require('./utils/users');
+const { userJoin, createRoom, getCurrentUser, userLeave, getRoomInfo, getRooms, addToQueue, nextTrack } = require('./utils/users');
+
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -13,13 +15,35 @@ const io = socketio(server, {
     }
 });
 
-const PORT = 3000 || process.env.PORT;
+const PORT = process.env.PORT || 3000;
+const IP = process.env.IP || 'localhost';
 
 //Run when a client connects
 io.on('connection', socket => {
     socket.on('joinRoom', ({ username, room }) => {
         const user = userJoin(socket.id, username, room);
+        console.log('joinRoom',user);
 
+        socket.join(user.room);
+        console.log(getRooms());
+
+        //just emit to user that is connecting
+        socket.emit('message', formatMessage('server', 'Welcome to the chat'));
+
+        //emit to all users except the one connecting
+        socket.broadcast.to(user.room).emit('message', formatMessage('server', `${user.username} has joined the chat`));
+
+        //Send user and room info
+        io.to(user.room).emit('roomUsers', {
+            room: user.room,
+            users: getRoomInfo(user.room)
+        })
+    })
+
+    //called when host creates new room
+    socket.on('createRoom', username => {
+        const user = createRoom(socket.id, username);
+        console.log('createRoom',user);
         socket.join(user.room);
         console.log(getRooms());
 
@@ -66,7 +90,18 @@ io.on('connection', socket => {
     });
 
     //Toggle pause
-    //Todo
+    socket.on('pauseToggle', playing => {
+        //do we want to store the state of the track/queue/room on the server (ie playing/paused)??
+        //server probably should store state - what if someone joins when track is paused. how do they know the state when they join?
+        //for now just emit back generic message to tell clients to toggle, server will handle logic for that later
+        const user = getCurrentUser(socket.id);
+        
+        if(playing){
+            io.to(user.room).emit('pauseMsg', false);
+        } else {
+            io.to(user.room).emit('pauseMsg', true);
+        }
+    });
 
 
     // Next track
@@ -78,15 +113,15 @@ io.on('connection', socket => {
 
     //Runs when a user disconnects
     socket.on('disconnect', () => {
-        const user = userLeave(socket.id);
+        const user = userLeave(socket.id); //returns an array
 
-        if (user) {
-            io.to(user.room).emit('message', formatMessage('server', `${user.username} has left the chat`));
+        if (user && user.length > 0) {
 
+            io.to(user[0].room).emit('message', formatMessage('server', `${user[0].username} has left the chat`));
             //Send user and room info
-            io.to(user.room).emit('roomUsers', {
-                room: user.room,
-                users: getRoomInfo(user.room)
+            io.to(user[0].room).emit('roomUsers', {
+                room: user[0].room,
+                users: getRoomInfo(user[0].room)
             })
         }
         console.log(getRooms());
@@ -94,4 +129,4 @@ io.on('connection', socket => {
     });
 })
 
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, IP, () => console.log(`Server running on ${IP}:${PORT}`));
