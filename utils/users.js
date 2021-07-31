@@ -49,7 +49,14 @@ function makeid(length) {
 
 //Get current user
 function getCurrentUser(id){
-    return users.find(user => user.id === id);
+    let user = users.find(user => user.id === id);
+    //get users room state
+    const room = rooms.find(room => user.room === room.name)
+    user = {
+        ...user,
+        roomPlaying: room.playing
+    }
+    return user;
 }
 
 // User leaves chat
@@ -137,6 +144,12 @@ function nextTrack(user){
     return room.queue;
 }
 
+//testing - get entire room object
+// accepts a room name as parameter
+function getRoomObj(roomName){
+    return rooms.find(room => roomName === room.name)
+}
+
 module.exports = {
     userJoin,
     createRoom,
@@ -145,7 +158,8 @@ module.exports = {
     getRoomInfo,
     getRooms,
     addToQueue,
-    nextTrack
+    nextTrack,
+    getRoomObj
 }
 
 // Rooms

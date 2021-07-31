@@ -3,7 +3,8 @@ class Room {
         this.name = roomName;
         this.users = [];
         this.queue = [];
-
+        this.playing = false;
+        
         return this;
     }
 }

@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketio = require('socket.io');
 const formatMessage = require('./utils/messages');
-const { userJoin, createRoom, getCurrentUser, userLeave, getRoomInfo, getRooms, addToQueue, nextTrack } = require('./utils/users');
+const { userJoin, createRoom, getCurrentUser, userLeave, getRoomInfo, getRooms, addToQueue, nextTrack, getRoomObj } = require('./utils/users');
 
 require('dotenv').config();
 
@@ -35,9 +35,11 @@ io.on('connection', socket => {
 
         //Send user and room info
         io.to(user.room).emit('roomUsers', {
+            roomObj: getRoomObj(user.room),
             room: user.room,
-            users: getRoomInfo(user.room)
+            users: getRoomInfo(user.room),
         })
+        console.log('roomObj', getRoomObj(user.room))
     })
 
     //called when host creates new room
@@ -55,8 +57,9 @@ io.on('connection', socket => {
 
         //Send user and room info
         io.to(user.room).emit('roomUsers', {
+            roomObj: getRoomObj(user.room),
             room: user.room,
-            users: getRoomInfo(user.room)
+            users: getRoomInfo(user.room),
         })
     })
 
@@ -95,11 +98,16 @@ io.on('connection', socket => {
         //server probably should store state - what if someone joins when track is paused. how do they know the state when they join?
         //for now just emit back generic message to tell clients to toggle, server will handle logic for that later
         const user = getCurrentUser(socket.id);
-        
-        if(playing){
-            io.to(user.room).emit('pauseMsg', false);
+        const room = getRooms().find(room => user.room === room.name)
+        // console.log('user.roomPlaying (before)',user.roomPlaying);
+        if(user.roomPlaying){
+            room.playing = false;
+            user.roomPlaying = false;
+            io.to(user.room).emit('pauseMsg', user.roomPlaying);
         } else {
-            io.to(user.room).emit('pauseMsg', true);
+            room.playing = true;
+            user.roomPlaying = true;
+            io.to(user.room).emit('pauseMsg', user.roomPlaying);
         }
     });
 
@@ -120,8 +128,9 @@ io.on('connection', socket => {
             io.to(user[0].room).emit('message', formatMessage('server', `${user[0].username} has left the chat`));
             //Send user and room info
             io.to(user[0].room).emit('roomUsers', {
+                roomObj: getRoomObj(user[0].room),
                 room: user[0].room,
-                users: getRoomInfo(user[0].room)
+                users: getRoomInfo(user[0].room),
             })
         }
         console.log(getRooms());
