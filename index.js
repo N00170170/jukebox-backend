@@ -80,8 +80,6 @@ io.on('connection', socket => {
     //Listen for queue add
     socket.on('queueAdd', (track) => {
         // console.log(msg);
-
-
         const user = getCurrentUser(socket.id);
 
         const queue = addToQueue(user,track);
@@ -99,15 +97,18 @@ io.on('connection', socket => {
         //for now just emit back generic message to tell clients to toggle, server will handle logic for that later
         const user = getCurrentUser(socket.id);
         const room = getRooms().find(room => user.room === room.name)
-        // console.log('user.roomPlaying (before)',user.roomPlaying);
-        if(user.roomPlaying){
-            room.playing = false;
-            user.roomPlaying = false;
-            io.to(user.room).emit('pauseMsg', user.roomPlaying);
-        } else {
-            room.playing = true;
-            user.roomPlaying = true;
-            io.to(user.room).emit('pauseMsg', user.roomPlaying);
+
+        //check if emitted by host
+        if(user.id === room.users[0].id){
+            if(user.roomPlaying){
+                room.playing = false;
+                user.roomPlaying = false;
+                io.to(user.room).emit('pauseMsg', user.roomPlaying);
+            } else {
+                room.playing = true;
+                user.roomPlaying = true;
+                io.to(user.room).emit('pauseMsg', user.roomPlaying);
+            }
         }
     });
 
@@ -115,7 +116,12 @@ io.on('connection', socket => {
     // Next track
     socket.on('nextTrack', () => {
         const user = getCurrentUser(socket.id);
-        io.to(user.room).emit('queueUpdate', nextTrack(user)); //emitting queueUpdate back to all clients with updated queue
+        const room = getRooms().find(room => user.room === room.name)
+
+        //check if emitted by host
+        if(user.id === room.users[0].id){
+            io.to(user.room).emit('queueUpdate', nextTrack(user)); //emitting queueUpdate back to all clients with updated queue
+        }
     });
 
 
