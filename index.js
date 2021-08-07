@@ -1,5 +1,7 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require( 'fs' );
 const socketio = require('socket.io');
 const formatMessage = require('./utils/messages');
 const { userJoin, createRoom, getCurrentUser, userLeave, getRoomInfo, getRooms, addToQueue, nextTrack, getRoomObj } = require('./utils/users');
@@ -7,7 +9,21 @@ const { userJoin, createRoom, getCurrentUser, userLeave, getRoomInfo, getRooms, 
 require('dotenv').config();
 
 const app = express();
-const server = http.createServer(app);
+
+// check if server is running in development or production environment to determine whether to load HTTPS or not
+const serverInit = () => {
+    if(process.env.NODE_ENV == 'production'){
+        return https.createServer({ 
+            key: fs.readFileSync('/etc/letsencrypt/live/jukebox.clovux.net/privkey.pem'),
+            cert: fs.readFileSync('/etc/letsencrypt/live/jukebox.clovux.net/fullchain.pem')
+        },app); 
+    } else {
+        return http.createServer(app); 
+    }
+}
+
+const server = serverInit();
+
 const io = socketio(server, {
     cors: {
         origin: "*",
@@ -144,4 +160,4 @@ io.on('connection', socket => {
     });
 })
 
-server.listen(PORT, IP, () => console.log(`Server running on ${IP}:${PORT}`));
+server.listen(PORT, IP, () => console.log(`Server running on ${((process.env.NODE_ENV == 'production') ? 'https://' : 'http://')}${IP}:${PORT}`));
