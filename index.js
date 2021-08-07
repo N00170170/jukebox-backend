@@ -100,7 +100,7 @@ io.on('connection', socket => {
 
         //check if emitted by host
         if(user.id === room.users[0].id){
-            if(user.roomPlaying){
+            if(playing){
                 room.playing = false;
                 user.roomPlaying = false;
                 io.to(user.room).emit('pauseMsg', user.roomPlaying);
