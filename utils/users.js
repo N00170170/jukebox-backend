@@ -74,7 +74,7 @@ function userLeave(id) {
         console.log("The user left", roomLeft.name);
 
         //find user index in room.users array
-        const roomUserIndex = roomLeft.users.findIndex(user => userLeaving.id === id);
+        const roomUserIndex = roomLeft.users.findIndex(user => userLeaving.id === user.id);
 
         //remove user from users array in room
         roomLeft.users.splice(roomUserIndex, 1);
